@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Word Challenge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem; /* More rounded corners */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem; /* p-6 */
+            margin-bottom: 1.5rem; /* mb-6 */
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem; /* py-3 px-6 */
+            border-radius: 0.5rem; /* md */
+            font-weight: 500; /* medium */
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-primary {
+            background-color: #4f46e5; /* Indigo-600 */
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca; /* Indigo-700 */
+        }
+        .btn-secondary {
+            background-color: #6b7280; /* Gray-500 */
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563; /* Gray-600 */
+        }
+        .btn-outline {
+            background-color: transparent;
+            color: #4f46e5; /* Indigo-600 */
+            border: 1px solid #4f46e5; /* Indigo-600 */
+        }
+        .btn-outline:hover {
+            background-color: #e0e7ff; /* Indigo-100 */
+        }
+        .filter-group legend {
+            font-weight: 600; /* semibold */
+            color: #1f2937; /* gray-800 */
+            margin-bottom: 0.5rem;
+        }
+        .filter-group label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem; /* mb-2 */
+            color: #374151; /* gray-700 */
+            cursor: pointer;
+        }
+        .filter-group input[type="checkbox"] {
+            margin-right: 0.5rem; /* mr-2 */
+            accent-color: #4f46e5; /* Indigo-600 */
+            width: 1rem;
+            height: 1rem;
+        }
+        #copyFeedback {
+            transition: opacity 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-3xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-indigo-700 mb-2">Daily Word Challenge</h1>
+            <p class="text-lg text-gray-600">Pick a character, make a sentence, build a habit!</p>
+        </header>
+
+        <div class="card" id="setupSection">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Step 1: Load Your Characters</h2>
+            <div class="bg-indigo-50 border-l-4 border-indigo-500 text-indigo-700 p-4 mb-4 rounded-md" role="alert">
+                <p class="font-bold">Important!</p>
+                <p>To use this tool, you need to publish your Google Sheet to the web as a CSV file.
+                   Ensure your CSV file has the following headers in the first row:
+                   <code class="bg-indigo-100 px-1 rounded">character</code>,
+                   <code class="bg-indigo-100 px-1 rounded">pinyin</code>,
+                   <code class="bg-indigo-100 px-1 rounded">meaning</code>,
+                   <code class="bg-indigo-100 px-1 rounded">level</code>,
+                   <code class="bg-indigo-100 px-1 rounded">lesson</code>.
+                </p>
+                <ol class="list-decimal list-inside mt-2 text-sm">
+                    <li>Open your Google Sheet.</li>
+                    <li>Go to <code class="bg-indigo-100 px-1 rounded">File</code> > <code class="bg-indigo-100 px-1 rounded">Share</code> > <code class="bg-indigo-100 px-1 rounded">Publish to web</code>.</li>
+                    <li>In the "Link" tab, select the sheet containing your words (e.g., "Sheet1").</li>
+                    <li>Choose <code class="bg-indigo-100 px-1 rounded">Comma-separated values (.csv)</code> as the format.</li>
+                    <li>Click <code class="bg-indigo-100 px-1 rounded">Publish</code> and copy the generated URL.</li>
+                </ol>
+            </div>
+            <label for="csvUrl" class="block text-sm font-medium text-gray-700 mb-1">Paste your published CSV URL here:</label>
+            <input type="url" id="csvUrl" class="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 mb-3" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv">
+            <button id="loadDataBtn" class="btn btn-primary w-full md:w-auto">
+                <i class="fas fa-cloud-download-alt mr-2"></i>Load Character List
+            </button>
+            <p id="loadError" class="text-red-500 text-sm mt-2"></p>
+        </div>
+
+        <div id="appArea" class="hidden">
+            <div class="card">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Step 2: Filter Your Characters</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <fieldset class="filter-group">
+                        <legend>Lessons</legend>
+                        <div id="lessonFilters" class="max-h-48 overflow-y-auto p-2 border rounded-md">
+                            </div>
+                    </fieldset>
+                    <fieldset class="filter-group">
+                        <legend>Levels</legend>
+                        <div id="levelFilters" class="max-h-48 overflow-y-auto p-2 border rounded-md">
+                            </div>
+                    </fieldset>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Step 3: Your Character Challenge</h2>
+                <button id="getWordBtn" class="btn btn-primary mb-4 w-full md:w-auto">
+                    <i class="fas fa-random mr-2"></i>Get New Character
+                </button>
+                
+                <div id="wordDisplayArea" class="p-4 bg-indigo-50 rounded-lg mb-4 hidden min-h-[100px]">
+                    <h3 class="text-xl font-semibold text-indigo-700">Character: <span id="chosenWord" class="text-2xl"></span></h3>
+                    <p class="text-gray-600 mt-1"><strong>Pinyin:</strong> <span id="wordPinyin"></span></p>
+                    <p class="text-gray-600 mt-1"><strong>Meaning:</strong> <span id="wordMeaning"></span></p>
+                </div>
+                <p id="noWordError" class="text-orange-500 text-sm mb-4 hidden"></p>
+
+                <label for="sentenceInput" class="block text-sm font-medium text-gray-700 mb-1">Craft your sentence:</label>
+                <textarea id="sentenceInput" rows="4" class="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 mb-4" placeholder="Write a sentence using the chosen character..."></textarea>
+                
+                <button id="generateSaveDataBtn" class="btn btn-secondary w-full md:w-auto">
+                    <i class="fas fa-save mr-2"></i>Prepare Data for Saving
+                </button>
+            </div>
+
+            <div class="card" id="saveDataSection" class="hidden">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-3">Step 4: Save to Your Sheet</h2>
+                <p class="text-gray-600 mb-3">
+                    Copy the text below and paste it as a new row into your "Sentences" sheet in Google Sheets.
+                    Make sure your "Sentences" sheet has columns: <code class="bg-gray-200 px-1 rounded">Date</code>, <code class="bg-gray-200 px-1 rounded">Word</code> (or Character), <code class="bg-gray-200 px-1 rounded">Sentence</code>.
+                </p>
+                <textarea id="dataToSave" rows="3" class="w-full p-3 border border-gray-300 rounded-md bg-gray-50 mb-3" readonly></textarea>
+                <button id="copyDataBtn" class="btn btn-outline w-full md:w-auto">
+                    <i class="fas fa-copy mr-2"></i>Copy Data
+                </button>
+                <span id="copyFeedback" class="ml-3 text-green-600 opacity-0">Copied!</span>
+            </div>
+        </div>
+
+        <footer class="text-center mt-12 mb-6">
+            <p class="text-sm text-gray-500">&copy; 2024 Daily Word Challenge Tool. Happy learning!</p>
+            <p class="text-xs text-gray-400 mt-1">For automated saving, consider exploring Google Apps Script.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Global variable to store word data
+        let wordData = [];
+        // Global variable to store the currently chosen word object
+        let currentWordObject = null;
+
+        // DOM Elements
+        const csvUrlInput = document.getElementById('csvUrl');
+        const loadDataBtn = document.getElementById('loadDataBtn');
+        const loadError = document.getElementById('loadError');
+        const setupSection = document.getElementById('setupSection');
+        const appArea = document.getElementById('appArea');
+        
+        const lessonFiltersDiv = document.getElementById('lessonFilters');
+        const levelFiltersDiv = document.getElementById('levelFilters');
+        
+        const getWordBtn = document.getElementById('getWordBtn');
+        const wordDisplayArea = document.getElementById('wordDisplayArea');
+        const chosenWordSpan = document.getElementById('chosenWord');
+        const wordPinyinSpan = document.getElementById('wordPinyin'); // Added for Pinyin
+        const wordMeaningSpan = document.getElementById('wordMeaning');
+        const noWordError = document.getElementById('noWordError');
+        
+        const sentenceInput = document.getElementById('sentenceInput');
+        const generateSaveDataBtn = document.getElementById('generateSaveDataBtn');
+        
+        const saveDataSection = document.getElementById('saveDataSection');
+        const dataToSaveTextarea = document.getElementById('dataToSave');
+        const copyDataBtn = document.getElementById('copyDataBtn');
+        const copyFeedback = document.getElementById('copyFeedback');
+
+        // --- Data Loading and Processing ---
+        loadDataBtn.addEventListener('click', async () => {
+            const url = csvUrlInput.value.trim();
+            if (!url) {
+                loadError.textContent = 'Please enter a valid CSV URL.';
+                return;
+            }
+            loadError.textContent = '';
+            loadDataBtn.disabled = true;
+            loadDataBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading...';
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch CSV: ${response.status} ${response.statusText}`);
+                }
+                const csvText = await response.text();
+                parseCSV(csvText);
+                if (wordData.length > 0) {
+                    setupSection.classList.add('hidden');
+                    appArea.classList.remove('hidden');
+                    populateFilters();
+                } else {
+                    loadError.textContent = 'No data found or CSV format is incorrect. Ensure headers are: character,pinyin,meaning,level,lesson';
+                }
+            } catch (error) {
+                console.error('Error loading CSV:', error);
+                loadError.textContent = `Error: ${error.message}. Check URL and CSV format.`;
+            } finally {
+                loadDataBtn.disabled = false;
+                loadDataBtn.innerHTML = '<i class="fas fa-cloud-download-alt mr-2"></i>Load Character List';
+            }
+        });
+
+        function parseCSV(text) {
+            wordData = []; // Reset word data
+            const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+            if (lines.length < 2) {
+                 loadError.textContent = 'CSV file must contain a header row and at least one data row.';
+                 return;
+            }
+
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase()); // Standardize headers to lowercase
+            
+            // New expected headers based on user's sheet
+            const expectedHeaders = ['character', 'pinyin', 'meaning', 'level', 'lesson'];
+            const missingHeaders = expectedHeaders.filter(eh => !headers.includes(eh));
+
+            if (missingHeaders.length > 0) {
+                loadError.textContent = `CSV is missing expected headers: ${missingHeaders.join(', ')}. Please ensure your CSV has: character, pinyin, meaning, level, lesson.`;
+                console.warn(`CSV is missing expected headers: ${missingHeaders.join(', ')}.`);
+                return; // Stop processing if essential headers are missing
+            }
+            
+            // Get indices of the columns
+            const charIndex = headers.indexOf('character');
+            const pinyinIndex = headers.indexOf('pinyin');
+            const meaningIndex = headers.indexOf('meaning');
+            const levelIndex = headers.indexOf('level');
+            const lessonIndex = headers.indexOf('lesson');
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                // Ensure the character field is present and not empty
+                if (values[charIndex] && values[charIndex].trim() !== "") {
+                    const entry = {};
+                    // Map values to keys based on header indices
+                    // Using "Word" internally for the character for consistency with previous logic
+                    entry.Word = values[charIndex]?.trim(); 
+                    entry.Pinyin = values[pinyinIndex]?.trim() || 'N/A';
+                    entry.Meaning = values[meaningIndex]?.trim() || 'N/A';
+                    entry.Level = values[levelIndex]?.trim() || 'Uncategorized'; // Default if empty
+                    entry.Lesson = values[lessonIndex]?.trim() || 'Uncategorized'; // Default if empty
+                    
+                    wordData.push(entry);
+                }
+            }
+        }
+
+        // --- Filter Population ---
+        function populateFilters() {
+            // Ensure defaults are handled if Lesson/Level were empty in CSV
+            const lessons = [...new Set(wordData.map(item => item.Lesson || 'Uncategorized'))].sort();
+            const levels = [...new Set(wordData.map(item => item.Level || 'Uncategorized'))].sort();
+
+            lessonFiltersDiv.innerHTML = lessons.map(lesson => `
+                <label>
+                    <input type="checkbox" name="lesson" value="${lesson}" checked> ${lesson}
+                </label>
+            `).join('');
+
+            levelFiltersDiv.innerHTML = levels.map(level => `
+                <label>
+                    <input type="checkbox" name="level" value="${level}" checked> ${level}
+                </label>
+            `).join('');
+        }
+
+        // --- Word Selection Logic ---
+        getWordBtn.addEventListener('click', displayRandomWord);
+
+        function getSelectedFilters(name) {
+            return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
+        }
+
+        function displayRandomWord() {
+            const selectedLessons = getSelectedFilters('lesson');
+            const selectedLevels = getSelectedFilters('level');
+
+            const filteredWords = wordData.filter(item => 
+                (selectedLessons.length === 0 || selectedLessons.includes(item.Lesson || 'Uncategorized')) &&
+                (selectedLevels.length === 0 || selectedLevels.includes(item.Level || 'Uncategorized'))
+            );
+
+            if (filteredWords.length > 0) {
+                currentWordObject = filteredWords[Math.floor(Math.random() * filteredWords.length)];
+                chosenWordSpan.textContent = currentWordObject.Word; // This is the 'character'
+                wordPinyinSpan.textContent = currentWordObject.Pinyin || 'N/A';
+                wordMeaningSpan.textContent = currentWordObject.Meaning || 'N/A';
+                wordDisplayArea.classList.remove('hidden');
+                noWordError.classList.add('hidden');
+                sentenceInput.value = ''; // Clear previous sentence
+                saveDataSection.classList.add('hidden'); 
+                dataToSaveTextarea.value = '';
+            } else {
+                currentWordObject = null;
+                chosenWordSpan.textContent = '';
+                wordPinyinSpan.textContent = '';
+                wordMeaningSpan.textContent = '';
+                wordDisplayArea.classList.add('hidden');
+                noWordError.textContent = 'No characters match your current filters. Try adjusting them!';
+                noWordError.classList.remove('hidden');
+            }
+        }
+
+        // --- Sentence Saving Logic ---
+        generateSaveDataBtn.addEventListener('click', () => {
+            if (!currentWordObject || !currentWordObject.Word) { // Word here refers to the character
+                // Using a more user-friendly notification instead of alert()
+                noWordError.textContent = 'Please select a character first!';
+                noWordError.classList.remove('hidden');
+                setTimeout(() => noWordError.classList.add('hidden'), 3000);
+                return;
+            }
+            const sentence = sentenceInput.value.trim();
+            if (!sentence) {
+                // Using a more user-friendly notification
+                noWordError.textContent = 'Please write a sentence for the character!';
+                noWordError.classList.remove('hidden');
+                setTimeout(() => noWordError.classList.add('hidden'), 3000);
+                return;
+            }
+            noWordError.classList.add('hidden'); // Clear any previous error
+
+            const today = new Date();
+            const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            
+            // Data format: Date (tab) Word (Character) (tab) Sentence
+            const dataString = `${dateString}\t${currentWordObject.Word}\t${sentence}`;
+            dataToSaveTextarea.value = dataString;
+            saveDataSection.classList.remove('hidden');
+            copyFeedback.style.opacity = '0'; 
+        });
+
+        copyDataBtn.addEventListener('click', () => {
+            dataToSaveTextarea.select();
+            dataToSaveTextarea.setSelectionRange(0, 99999); // For mobile devices
+
+            try {
+                // Using the newer Clipboard API if available, with fallback
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(dataToSaveTextarea.value).then(() => {
+                        copyFeedback.style.opacity = '1';
+                        setTimeout(() => {
+                            copyFeedback.style.opacity = '0';
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Async copy failed:', err);
+                        // Fallback to execCommand
+                        compatCopy();
+                    });
+                } else {
+                   compatCopy(); // Fallback for older browsers
+                }
+            } catch (err) { // Should not happen if compatCopy is used as fallback
+                displayCopyError();
+                console.error('Copy failed:', err);
+            }
+        });
+        
+        function compatCopy() {
+            // Fallback copy method
+            try {
+                document.execCommand('copy');
+                copyFeedback.style.opacity = '1';
+                setTimeout(() => {
+                    copyFeedback.style.opacity = '0';
+                }, 2000);
+            } catch (err) {
+                 displayCopyError();
+                 console.error('Fallback copy (execCommand) failed:', err);
+            }
+        }
+
+        function displayCopyError() {
+            // Show a more prominent error if copy fails
+            copyFeedback.textContent = 'Copy failed!';
+            copyFeedback.style.color = 'red';
+            copyFeedback.style.opacity = '1';
+             setTimeout(() => {
+                copyFeedback.style.opacity = '0';
+                // Reset to default after a while
+                copyFeedback.textContent = 'Copied!';
+                copyFeedback.style.color = 'green';
+            }, 3000);
+        }
+
+
+    </script>
+</body>
+</html>
