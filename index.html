@@ -26,7 +26,7 @@
             padding: 0.75rem 1.5rem; /* py-3 px-6 */
             border-radius: 0.5rem; /* md */
             font-weight: 500; /* medium */
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s ease, opacity 0.3s ease;
             cursor: pointer;
             border: none;
         }
@@ -44,13 +44,9 @@
         .btn-secondary:hover {
             background-color: #4b5563; /* Gray-600 */
         }
-        .btn-outline {
-            background-color: transparent;
-            color: #4f46e5; /* Indigo-600 */
-            border: 1px solid #4f46e5; /* Indigo-600 */
-        }
-        .btn-outline:hover {
-            background-color: #e0e7ff; /* Indigo-100 */
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
         .filter-group legend {
             font-weight: 600; /* semibold */
@@ -70,8 +66,27 @@
             width: 1rem;
             height: 1rem;
         }
-        #copyFeedback {
-            transition: opacity 0.5s ease-out;
+        .status-message {
+            padding: 0.75rem; /* py-3 px-3 */
+            margin-top: 1rem; /* mt-4 */
+            border-radius: 0.375rem; /* rounded-md */
+            font-size: 0.875rem; /* text-sm */
+            text-align: center;
+        }
+        .status-success {
+            background-color: #d1fae5; /* Green-100 */
+            color: #065f46; /* Green-700 */
+            border: 1px solid #6ee7b7; /* Green-300 */
+        }
+        .status-error {
+            background-color: #fee2e2; /* Red-100 */
+            color: #b91c1c; /* Red-700 */
+            border: 1px solid #fca5a5; /* Red-300 */
+        }
+        .status-loading {
+            background-color: #e0e7ff; /* Indigo-100 */
+            color: #3730a3; /* Indigo-700 */
+            border: 1px solid #a5b4fc; /* Indigo-300 */
         }
     </style>
 </head>
@@ -79,35 +94,46 @@
     <div class="max-w-3xl mx-auto">
         <header class="text-center mb-8">
             <h1 class="text-4xl font-bold text-indigo-700 mb-2">Daily Word Challenge</h1>
-            <p class="text-lg text-gray-600">Pick a character, make a sentence, build a habit!</p>
+            <p class="text-lg text-gray-600">Pick a character, make a sentence, save it automatically!</p>
         </header>
 
         <div class="card" id="setupSection">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Step 1: Load Your Characters</h2>
-            <div class="bg-indigo-50 border-l-4 border-indigo-500 text-indigo-700 p-4 mb-4 rounded-md" role="alert">
-                <p class="font-bold">Important!</p>
-                <p>To use this tool, you need to publish your Google Sheet to the web as a CSV file.
-                   Ensure your CSV file has the following headers in the first row:
-                   <code class="bg-indigo-100 px-1 rounded">character</code>,
-                   <code class="bg-indigo-100 px-1 rounded">pinyin</code>,
-                   <code class="bg-indigo-100 px-1 rounded">meaning</code>,
-                   <code class="bg-indigo-100 px-1 rounded">level</code>,
-                   <code class="bg-indigo-100 px-1 rounded">lesson</code>.
-                </p>
-                <ol class="list-decimal list-inside mt-2 text-sm">
-                    <li>Open your Google Sheet.</li>
-                    <li>Go to <code class="bg-indigo-100 px-1 rounded">File</code> > <code class="bg-indigo-100 px-1 rounded">Share</code> > <code class="bg-indigo-100 px-1 rounded">Publish to web</code>.</li>
-                    <li>In the "Link" tab, select the sheet containing your words (e.g., "Sheet1").</li>
-                    <li>Choose <code class="bg-indigo-100 px-1 rounded">Comma-separated values (.csv)</code> as the format.</li>
-                    <li>Click <code class="bg-indigo-100 px-1 rounded">Publish</code> and copy the generated URL.</li>
-                </ol>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Step 1: Setup</h2>
+            
+            <div class="mb-6">
+                <h3 class="text-lg font-medium text-gray-700 mb-2">A. Load Your Characters (CSV)</h3>
+                <div class="bg-indigo-50 border-l-4 border-indigo-500 text-indigo-700 p-4 mb-3 rounded-md" role="alert">
+                    <p>Publish your Google Sheet (with columns: <code class="bg-indigo-100 px-1 rounded">character</code>, <code class="bg-indigo-100 px-1 rounded">pinyin</code>, <code class="bg-indigo-100 px-1 rounded">meaning</code>, <code class="bg-indigo-100 px-1 rounded">level</code>, <code class="bg-indigo-100 px-1 rounded">lesson</code>) to the web as CSV.</p>
+                    <ol class="list-decimal list-inside mt-1 text-sm">
+                        <li>In Google Sheets: <code class="bg-indigo-100 px-1 rounded">File</code> > <code class="bg-indigo-100 px-1 rounded">Share</code> > <code class="bg-indigo-100 px-1 rounded">Publish to web</code>.</li>
+                        <li>Select your sheet, choose <code class="bg-indigo-100 px-1 rounded">Comma-separated values (.csv)</code>, then click <code class="bg-indigo-100 px-1 rounded">Publish</code>.</li>
+                    </ol>
+                </div>
+                <label for="csvUrl" class="block text-sm font-medium text-gray-700 mb-1">Paste published CSV URL:</label>
+                <input type="url" id="csvUrl" class="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv">
             </div>
-            <label for="csvUrl" class="block text-sm font-medium text-gray-700 mb-1">Paste your published CSV URL here:</label>
-            <input type="url" id="csvUrl" class="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 mb-3" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv">
-            <button id="loadDataBtn" class="btn btn-primary w-full md:w-auto">
-                <i class="fas fa-cloud-download-alt mr-2"></i>Load Character List
+
+            <div class="mb-6">
+                <h3 class="text-lg font-medium text-gray-700 mb-2">B. Setup Auto-Saving (Google Apps Script)</h3>
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 p-4 mb-3 rounded-md" role="alert">
+                    <p class="font-bold">Action Required in Google Sheets:</p>
+                    <ol class="list-decimal list-inside mt-1 text-sm">
+                        <li>Open your Google Spreadsheet. Go to <code class="bg-yellow-100 px-1 rounded">Extensions</code> > <code class="bg-yellow-100 px-1 rounded">Apps Script</code>.</li>
+                        <li>Paste the provided Google Apps Script code into the editor. Save the script.</li>
+                        <li>Click <code class="bg-yellow-100 px-1 rounded">Deploy</code> > <code class="bg-yellow-100 px-1 rounded">New deployment</code>. Type: <code class="bg-yellow-100 px-1 rounded">Web app</code>.</li>
+                        <li>Execute as: <code class="bg-yellow-100 px-1 rounded">Me</code>. Who has access: <code class="bg-yellow-100 px-1 rounded">Anyone</code>.</li>
+                        <li>Click <code class="bg-yellow-100 px-1 rounded">Deploy</code>. Authorize if prompted. Copy the <code class="bg-yellow-100 px-1 rounded">Web app URL</code>.</li>
+                        <li>Ensure a sheet named "Sentences" (or as per `TARGET_SHEET_NAME` in script) exists with headers: `Date`, `Character`, `Sentence`. (Run `setupSheet` function in Apps Script editor to create/verify).</li>
+                    </ol>
+                </div>
+                <label for="appsScriptUrl" class="block text-sm font-medium text-gray-700 mb-1">Paste your deployed Web App URL:</label>
+                <input type="url" id="appsScriptUrl" class="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://script.google.com/macros/s/.../exec">
+            </div>
+            
+            <button id="loadDataAndSetupBtn" class="btn btn-primary w-full">
+                <i class="fas fa-cogs mr-2"></i>Initialize Challenge App
             </button>
-            <p id="loadError" class="text-red-500 text-sm mt-2"></p>
+            <p id="setupError" class="text-red-500 text-sm mt-2"></p>
         </div>
 
         <div id="appArea" class="hidden">
@@ -143,41 +169,28 @@
                 <label for="sentenceInput" class="block text-sm font-medium text-gray-700 mb-1">Craft your sentence:</label>
                 <textarea id="sentenceInput" rows="4" class="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 mb-4" placeholder="Write a sentence using the chosen character..."></textarea>
                 
-                <button id="generateSaveDataBtn" class="btn btn-secondary w-full md:w-auto">
-                    <i class="fas fa-save mr-2"></i>Prepare Data for Saving
+                <button id="saveSentenceBtn" class="btn btn-secondary w-full md:w-auto">
+                    <i class="fas fa-save mr-2"></i>Save Sentence to Sheet
                 </button>
-            </div>
-
-            <div class="card" id="saveDataSection" class="hidden">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-3">Step 4: Save to Your Sheet</h2>
-                <p class="text-gray-600 mb-3">
-                    Copy the text below and paste it as a new row into your "Sentences" sheet in Google Sheets.
-                    Make sure your "Sentences" sheet has columns: <code class="bg-gray-200 px-1 rounded">Date</code>, <code class="bg-gray-200 px-1 rounded">Word</code> (or Character), <code class="bg-gray-200 px-1 rounded">Sentence</code>.
-                </p>
-                <textarea id="dataToSave" rows="3" class="w-full p-3 border border-gray-300 rounded-md bg-gray-50 mb-3" readonly></textarea>
-                <button id="copyDataBtn" class="btn btn-outline w-full md:w-auto">
-                    <i class="fas fa-copy mr-2"></i>Copy Data
-                </button>
-                <span id="copyFeedback" class="ml-3 text-green-600 opacity-0">Copied!</span>
-            </div>
+                <div id="saveStatus" class="status-message mt-3 hidden"></div> </div>
         </div>
 
         <footer class="text-center mt-12 mb-6">
             <p class="text-sm text-gray-500">&copy; 2024 Daily Word Challenge Tool. Happy learning!</p>
-            <p class="text-xs text-gray-400 mt-1">For automated saving, consider exploring Google Apps Script.</p>
         </footer>
     </div>
 
     <script>
-        // Global variable to store word data
-        let wordData = [];
-        // Global variable to store the currently chosen word object
-        let currentWordObject = null;
+        // --- Global Variables ---
+        let wordData = []; // Stores the parsed CSV data
+        let currentWordObject = null; // Stores the currently selected character object
+        let SCRIPT_URL = ''; // Stores the Google Apps Script Web App URL
 
-        // DOM Elements
+        // --- DOM Element References ---
         const csvUrlInput = document.getElementById('csvUrl');
-        const loadDataBtn = document.getElementById('loadDataBtn');
-        const loadError = document.getElementById('loadError');
+        const appsScriptUrlInput = document.getElementById('appsScriptUrl');
+        const loadDataAndSetupBtn = document.getElementById('loadDataAndSetupBtn');
+        const setupError = document.getElementById('setupError'); // For errors during initial setup
         const setupSection = document.getElementById('setupSection');
         const appArea = document.getElementById('appArea');
         
@@ -187,100 +200,118 @@
         const getWordBtn = document.getElementById('getWordBtn');
         const wordDisplayArea = document.getElementById('wordDisplayArea');
         const chosenWordSpan = document.getElementById('chosenWord');
-        const wordPinyinSpan = document.getElementById('wordPinyin'); // Added for Pinyin
+        const wordPinyinSpan = document.getElementById('wordPinyin');
         const wordMeaningSpan = document.getElementById('wordMeaning');
-        const noWordError = document.getElementById('noWordError');
+        const noWordError = document.getElementById('noWordError'); // For errors when no word matches filters
         
         const sentenceInput = document.getElementById('sentenceInput');
-        const generateSaveDataBtn = document.getElementById('generateSaveDataBtn');
-        
-        const saveDataSection = document.getElementById('saveDataSection');
-        const dataToSaveTextarea = document.getElementById('dataToSave');
-        const copyDataBtn = document.getElementById('copyDataBtn');
-        const copyFeedback = document.getElementById('copyFeedback');
+        const saveSentenceBtn = document.getElementById('saveSentenceBtn');
+        const saveStatus = document.getElementById('saveStatus'); // For feedback during sentence saving
 
-        // --- Data Loading and Processing ---
-        loadDataBtn.addEventListener('click', async () => {
-            const url = csvUrlInput.value.trim();
-            if (!url) {
-                loadError.textContent = 'Please enter a valid CSV URL.';
+        // --- Initialization Logic ---
+        loadDataAndSetupBtn.addEventListener('click', async () => {
+            const csvUrl = csvUrlInput.value.trim();
+            const scriptUrlValue = appsScriptUrlInput.value.trim();
+
+            setupError.textContent = ''; // Clear previous setup errors
+            if (!csvUrl) {
+                setupError.textContent = 'Please enter the published CSV URL.';
                 return;
             }
-            loadError.textContent = '';
-            loadDataBtn.disabled = true;
-            loadDataBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading...';
+            if (!scriptUrlValue) {
+                setupError.textContent = 'Please enter your Google Apps Script Web App URL.';
+                return;
+            }
+            SCRIPT_URL = scriptUrlValue; // Store the Apps Script URL globally
+
+            // Disable button and show loading state
+            loadDataAndSetupBtn.disabled = true;
+            loadDataAndSetupBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Initializing...';
 
             try {
-                const response = await fetch(url);
+                // Fetch and parse CSV data
+                const response = await fetch(csvUrl);
                 if (!response.ok) {
-                    throw new Error(`Failed to fetch CSV: ${response.status} ${response.statusText}`);
+                    throw new Error(`Failed to fetch CSV: ${response.status} ${response.statusText}. Ensure the URL is correct and the sheet is published.`);
                 }
                 const csvText = await response.text();
-                parseCSV(csvText);
+                parseCSV(csvText); // Parse the CSV text into wordData
+
                 if (wordData.length > 0) {
+                    // If data loaded successfully, hide setup and show main app
                     setupSection.classList.add('hidden');
                     appArea.classList.remove('hidden');
-                    populateFilters();
+                    populateFilters(); // Populate filter checkboxes
                 } else {
-                    loadError.textContent = 'No data found or CSV format is incorrect. Ensure headers are: character,pinyin,meaning,level,lesson';
+                    // If no data was parsed (e.g., CSV empty or wrong format)
+                    setupError.textContent = 'No data found in CSV or CSV format is incorrect. Expected headers: character, pinyin, meaning, level, lesson.';
                 }
             } catch (error) {
-                console.error('Error loading CSV:', error);
-                loadError.textContent = `Error: ${error.message}. Check URL and CSV format.`;
+                console.error('Error during initialization:', error);
+                setupError.textContent = `Initialization Error: ${error.message}. Check URLs, CSV format, and network connection.`;
             } finally {
-                loadDataBtn.disabled = false;
-                loadDataBtn.innerHTML = '<i class="fas fa-cloud-download-alt mr-2"></i>Load Character List';
+                // Re-enable button and restore text
+                loadDataAndSetupBtn.disabled = false;
+                loadDataAndSetupBtn.innerHTML = '<i class="fas fa-cogs mr-2"></i>Initialize Challenge App';
             }
         });
 
+        /**
+         * Parses the CSV text into an array of word objects.
+         * @param {string} text - The CSV data as a string.
+         */
         function parseCSV(text) {
             wordData = []; // Reset word data
-            const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
-            if (lines.length < 2) {
-                 loadError.textContent = 'CSV file must contain a header row and at least one data row.';
-                 return;
+            const lines = text.split(/\r?\n/).filter(line => line.trim() !== ''); // Split by new line and remove empty lines
+            
+            if (lines.length < 2) { // Check for header and at least one data row
+                 // This error will be caught by the wordData.length check in the caller
+                 console.warn('CSV file must contain a header row and at least one data row.');
+                 return; 
             }
 
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase()); // Standardize headers to lowercase
+            // Get headers, trim, and convert to lowercase for robust matching
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
             
-            // New expected headers based on user's sheet
+            // Define expected headers (all lowercase)
             const expectedHeaders = ['character', 'pinyin', 'meaning', 'level', 'lesson'];
             const missingHeaders = expectedHeaders.filter(eh => !headers.includes(eh));
 
             if (missingHeaders.length > 0) {
-                loadError.textContent = `CSV is missing expected headers: ${missingHeaders.join(', ')}. Please ensure your CSV has: character, pinyin, meaning, level, lesson.`;
                 console.warn(`CSV is missing expected headers: ${missingHeaders.join(', ')}.`);
-                return; // Stop processing if essential headers are missing
+                // This error will be caught by the wordData.length check in the caller
+                return; 
             }
             
-            // Get indices of the columns
+            // Get indices of the columns based on headers
             const charIndex = headers.indexOf('character');
             const pinyinIndex = headers.indexOf('pinyin');
             const meaningIndex = headers.indexOf('meaning');
             const levelIndex = headers.indexOf('level');
             const lessonIndex = headers.indexOf('lesson');
 
+            // Process each data row
             for (let i = 1; i < lines.length; i++) {
                 const values = lines[i].split(',');
-                // Ensure the character field is present and not empty
+                // Ensure the character field (primary identifier) is present and not empty
                 if (values[charIndex] && values[charIndex].trim() !== "") {
-                    const entry = {};
-                    // Map values to keys based on header indices
-                    // Using "Word" internally for the character for consistency with previous logic
-                    entry.Word = values[charIndex]?.trim(); 
-                    entry.Pinyin = values[pinyinIndex]?.trim() || 'N/A';
-                    entry.Meaning = values[meaningIndex]?.trim() || 'N/A';
-                    entry.Level = values[levelIndex]?.trim() || 'Uncategorized'; // Default if empty
-                    entry.Lesson = values[lessonIndex]?.trim() || 'Uncategorized'; // Default if empty
-                    
+                    const entry = {
+                        // Using "Word" internally for the character for consistency with some internal logic
+                        Word: values[charIndex]?.trim(), 
+                        Pinyin: values[pinyinIndex]?.trim() || 'N/A', // Default if empty
+                        Meaning: values[meaningIndex]?.trim() || 'N/A', // Default if empty
+                        Level: values[levelIndex]?.trim() || 'Uncategorized', // Default if empty
+                        Lesson: values[lessonIndex]?.trim() || 'Uncategorized' // Default if empty
+                    };
                     wordData.push(entry);
                 }
             }
         }
 
-        // --- Filter Population ---
+        /**
+         * Populates the lesson and level filter checkboxes based on unique values in wordData.
+         */
         function populateFilters() {
-            // Ensure defaults are handled if Lesson/Level were empty in CSV
             const lessons = [...new Set(wordData.map(item => item.Lesson || 'Uncategorized'))].sort();
             const levels = [...new Set(wordData.map(item => item.Level || 'Uncategorized'))].sort();
 
@@ -300,122 +331,155 @@
         // --- Word Selection Logic ---
         getWordBtn.addEventListener('click', displayRandomWord);
 
+        /**
+         * Gets the values of checked checkboxes for a given filter name.
+         * @param {string} name - The 'name' attribute of the checkboxes (e.g., "lesson", "level").
+         * @returns {string[]} - An array of selected filter values.
+         */
         function getSelectedFilters(name) {
             return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
         }
 
+        /**
+         * Filters wordData based on selected lessons and levels, then displays a random word.
+         */
         function displayRandomWord() {
             const selectedLessons = getSelectedFilters('lesson');
             const selectedLevels = getSelectedFilters('level');
 
+            // Filter words based on current selections
             const filteredWords = wordData.filter(item => 
                 (selectedLessons.length === 0 || selectedLessons.includes(item.Lesson || 'Uncategorized')) &&
                 (selectedLevels.length === 0 || selectedLevels.includes(item.Level || 'Uncategorized'))
             );
 
             if (filteredWords.length > 0) {
+                // Select a random word from the filtered list
                 currentWordObject = filteredWords[Math.floor(Math.random() * filteredWords.length)];
+                
+                // Display the chosen word's details
                 chosenWordSpan.textContent = currentWordObject.Word; // This is the 'character'
                 wordPinyinSpan.textContent = currentWordObject.Pinyin || 'N/A';
                 wordMeaningSpan.textContent = currentWordObject.Meaning || 'N/A';
+                
                 wordDisplayArea.classList.remove('hidden');
-                noWordError.classList.add('hidden');
-                sentenceInput.value = ''; // Clear previous sentence
-                saveDataSection.classList.add('hidden'); 
-                dataToSaveTextarea.value = '';
+                noWordError.classList.add('hidden'); // Hide any previous "no word" error
+                sentenceInput.value = ''; // Clear previous sentence input
+                saveStatus.classList.add('hidden'); // Hide save status message from previous attempts
+                saveStatus.textContent = '';
             } else {
+                // If no words match the filters
                 currentWordObject = null;
                 chosenWordSpan.textContent = '';
                 wordPinyinSpan.textContent = '';
                 wordMeaningSpan.textContent = '';
                 wordDisplayArea.classList.add('hidden');
-                noWordError.textContent = 'No characters match your current filters. Try adjusting them!';
-                noWordError.classList.remove('hidden');
+                displayStatus('No characters match your current filters. Try adjusting them!', 'error', noWordError);
             }
         }
 
-        // --- Sentence Saving Logic ---
-        generateSaveDataBtn.addEventListener('click', () => {
-            if (!currentWordObject || !currentWordObject.Word) { // Word here refers to the character
-                // Using a more user-friendly notification instead of alert()
-                noWordError.textContent = 'Please select a character first!';
-                noWordError.classList.remove('hidden');
-                setTimeout(() => noWordError.classList.add('hidden'), 3000);
+        // --- Sentence Saving Logic (Interacts with Google Apps Script) ---
+        saveSentenceBtn.addEventListener('click', async () => {
+            // Validate that a word is selected
+            if (!currentWordObject || !currentWordObject.Word) {
+                displayStatus('Please select a character first by clicking "Get New Character"!', 'error', noWordError);
                 return;
             }
+            // Validate that a sentence has been written
             const sentence = sentenceInput.value.trim();
             if (!sentence) {
-                // Using a more user-friendly notification
-                noWordError.textContent = 'Please write a sentence for the character!';
-                noWordError.classList.remove('hidden');
-                setTimeout(() => noWordError.classList.add('hidden'), 3000);
+                displayStatus('Please write a sentence for the character!', 'error', noWordError); // Use noWordError for context
                 return;
             }
-            noWordError.classList.add('hidden'); // Clear any previous error
+            // Validate that the Apps Script URL is set
+            if (!SCRIPT_URL) {
+                displayStatus('Google Apps Script URL is not set. Please check Step 1B in the setup.', 'error', saveStatus);
+                return;
+            }
+            noWordError.classList.add('hidden'); // Clear contextual error if validation passes
 
+            // Prepare data for sending
             const today = new Date();
             const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             
-            // Data format: Date (tab) Word (Character) (tab) Sentence
-            const dataString = `${dateString}\t${currentWordObject.Word}\t${sentence}`;
-            dataToSaveTextarea.value = dataString;
-            saveDataSection.classList.remove('hidden');
-            copyFeedback.style.opacity = '0'; 
-        });
+            const dataToSave = {
+                date: dateString,
+                word: currentWordObject.Word, // The 'character'
+                sentence: sentence
+            };
 
-        copyDataBtn.addEventListener('click', () => {
-            dataToSaveTextarea.select();
-            dataToSaveTextarea.setSelectionRange(0, 99999); // For mobile devices
+            // Update UI to show loading state
+            saveSentenceBtn.disabled = true;
+            saveSentenceBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+            displayStatus('Saving your sentence to Google Sheets...', 'loading', saveStatus);
 
             try {
-                // Using the newer Clipboard API if available, with fallback
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(dataToSaveTextarea.value).then(() => {
-                        copyFeedback.style.opacity = '1';
-                        setTimeout(() => {
-                            copyFeedback.style.opacity = '0';
-                        }, 2000);
-                    }).catch(err => {
-                        console.error('Async copy failed:', err);
-                        // Fallback to execCommand
-                        compatCopy();
-                    });
+                // Make the POST request to Google Apps Script
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'cors', // Necessary for cross-origin requests to Apps Script
+                    redirect: 'follow', // Apps Script web apps often issue a redirect after POST
+                    body: JSON.stringify(dataToSave), // Stringify the data object
+                    // Apps Script doPost(e) expects e.postData.contents as a string.
+                    // It also often works best if Content-Type is text/plain for the payload.
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8', 
+                    }
+                });
+                
+                // Attempt to parse the response as JSON (our Apps Script is set to return JSON)
+                const result = await response.json(); 
+
+                if (result.status === "success") {
+                    displayStatus(result.message || 'Sentence saved successfully!', 'success', saveStatus);
+                    sentenceInput.value = ''; // Clear input field after successful save
                 } else {
-                   compatCopy(); // Fallback for older browsers
+                    // If Apps Script returns an error status
+                    throw new Error(result.message || 'An unknown error occurred on the server.');
                 }
-            } catch (err) { // Should not happen if compatCopy is used as fallback
-                displayCopyError();
-                console.error('Copy failed:', err);
+            } catch (error) {
+                console.error('Error saving sentence:', error);
+                // Display a comprehensive error message
+                let errorMessage = `Failed to save: ${error.message}. `;
+                errorMessage += 'Troubleshooting tips: ';
+                errorMessage += '1. Check your internet connection. ';
+                errorMessage += '2. Verify the Apps Script URL is correct and the script is deployed correctly (access set to "Anyone"). ';
+                errorMessage += '3. Ensure the "Sentences" sheet exists with correct headers in your Google Spreadsheet. ';
+                errorMessage += '4. Check the Apps Script execution logs for more details (in Apps Script editor: "Executions").';
+                displayStatus(errorMessage, 'error', saveStatus);
+            } finally {
+                // Re-enable button and restore text regardless of outcome
+                saveSentenceBtn.disabled = false;
+                saveSentenceBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Save Sentence to Sheet';
             }
         });
-        
-        function compatCopy() {
-            // Fallback copy method
-            try {
-                document.execCommand('copy');
-                copyFeedback.style.opacity = '1';
-                setTimeout(() => {
-                    copyFeedback.style.opacity = '0';
-                }, 2000);
-            } catch (err) {
-                 displayCopyError();
-                 console.error('Fallback copy (execCommand) failed:', err);
+
+        /**
+         * Displays a status message in a specified element.
+         * @param {string} message - The message to display.
+         * @param {'success'|'error'|'loading'} type - The type of message, for styling.
+         * @param {HTMLElement} element - The HTML element where the message should be shown.
+         */
+        function displayStatus(message, type, element) {
+            element.textContent = message;
+            // Reset classes to base, then add specific type
+            element.className = 'status-message'; 
+            if (type === 'success') {
+                element.classList.add('status-success');
+            } else if (type === 'error') {
+                element.classList.add('status-error');
+            } else if (type === 'loading') {
+                element.classList.add('status-loading');
+            }
+            element.classList.remove('hidden'); // Make the status message visible
+
+            // Specific auto-hide for contextual errors near input fields
+            if (element === noWordError && (type === 'error' || type === 'success')) { 
+                 setTimeout(() => {
+                    element.classList.add('hidden');
+                 }, 5000); // Hide after 5 seconds
             }
         }
-
-        function displayCopyError() {
-            // Show a more prominent error if copy fails
-            copyFeedback.textContent = 'Copy failed!';
-            copyFeedback.style.color = 'red';
-            copyFeedback.style.opacity = '1';
-             setTimeout(() => {
-                copyFeedback.style.opacity = '0';
-                // Reset to default after a while
-                copyFeedback.textContent = 'Copied!';
-                copyFeedback.style.color = 'green';
-            }, 3000);
-        }
-
 
     </script>
 </body>
