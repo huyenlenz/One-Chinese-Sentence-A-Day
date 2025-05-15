@@ -44,6 +44,17 @@
         .btn-secondary:hover {
             background-color: #4b5563; /* Gray-600 */
         }
+        .btn-filter-action {
+            padding: 0.25rem 0.5rem; /* py-1 px-2 */
+            font-size: 0.75rem; /* text-xs */
+            margin-left: 0.5rem; /* ml-2 */
+            background-color: #e5e7eb; /* Gray-200 */
+            color: #374151; /* Gray-700 */
+            border: 1px solid #d1d5db; /* Gray-300 */
+        }
+        .btn-filter-action:hover {
+            background-color: #d1d5db; /* Gray-300 */
+        }
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
@@ -52,6 +63,9 @@
             font-weight: 600; /* semibold */
             color: #1f2937; /* gray-800 */
             margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .filter-group label {
             display: flex;
@@ -141,12 +155,24 @@
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">Step 2: Filter Your Characters</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <fieldset class="filter-group">
-                        <legend>Lessons</legend>
+                        <legend>
+                            <span>Lessons</span>
+                            <div>
+                                <button class="btn btn-filter-action" data-action="check-all" data-filter-type="lesson">All</button>
+                                <button class="btn btn-filter-action" data-action="uncheck-all" data-filter-type="lesson">None</button>
+                            </div>
+                        </legend>
                         <div id="lessonFilters" class="max-h-48 overflow-y-auto p-2 border rounded-md">
                             </div>
                     </fieldset>
                     <fieldset class="filter-group">
-                        <legend>Levels</legend>
+                        <legend>
+                            <span>Levels</span>
+                            <div>
+                                <button class="btn btn-filter-action" data-action="check-all" data-filter-type="level">All</button>
+                                <button class="btn btn-filter-action" data-action="uncheck-all" data-filter-type="level">None</button>
+                            </div>
+                        </legend>
                         <div id="levelFilters" class="max-h-48 overflow-y-auto p-2 border rounded-md">
                             </div>
                     </fieldset>
@@ -213,7 +239,7 @@
             const csvUrl = csvUrlInput.value.trim();
             const scriptUrlValue = appsScriptUrlInput.value.trim();
 
-            setupError.textContent = ''; // Clear previous setup errors
+            setupError.textContent = ''; 
             if (!csvUrl) {
                 setupError.textContent = 'Please enter the published CSV URL.';
                 return;
@@ -222,35 +248,31 @@
                 setupError.textContent = 'Please enter your Google Apps Script Web App URL.';
                 return;
             }
-            SCRIPT_URL = scriptUrlValue; // Store the Apps Script URL globally
+            SCRIPT_URL = scriptUrlValue; 
 
-            // Disable button and show loading state
             loadDataAndSetupBtn.disabled = true;
             loadDataAndSetupBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Initializing...';
 
             try {
-                // Fetch and parse CSV data
                 const response = await fetch(csvUrl);
                 if (!response.ok) {
                     throw new Error(`Failed to fetch CSV: ${response.status} ${response.statusText}. Ensure the URL is correct and the sheet is published.`);
                 }
                 const csvText = await response.text();
-                parseCSV(csvText); // Parse the CSV text into wordData
+                parseCSV(csvText); 
 
                 if (wordData.length > 0) {
-                    // If data loaded successfully, hide setup and show main app
                     setupSection.classList.add('hidden');
                     appArea.classList.remove('hidden');
-                    populateFilters(); // Populate filter checkboxes
+                    populateFilters(); 
+                    addFilterButtonListeners(); // Add listeners for new All/None buttons
                 } else {
-                    // If no data was parsed (e.g., CSV empty or wrong format)
                     setupError.textContent = 'No data found in CSV or CSV format is incorrect. Expected headers: character, pinyin, meaning, level, lesson.';
                 }
             } catch (error) {
                 console.error('Error during initialization:', error);
                 setupError.textContent = `Initialization Error: ${error.message}. Check URLs, CSV format, and network connection.`;
             } finally {
-                // Re-enable button and restore text
                 loadDataAndSetupBtn.disabled = false;
                 loadDataAndSetupBtn.innerHTML = '<i class="fas fa-cogs mr-2"></i>Initialize Challenge App';
             }
@@ -261,47 +283,38 @@
          * @param {string} text - The CSV data as a string.
          */
         function parseCSV(text) {
-            wordData = []; // Reset word data
-            const lines = text.split(/\r?\n/).filter(line => line.trim() !== ''); // Split by new line and remove empty lines
+            wordData = []; 
+            const lines = text.split(/\r?\n/).filter(line => line.trim() !== ''); 
             
-            if (lines.length < 2) { // Check for header and at least one data row
-                 // This error will be caught by the wordData.length check in the caller
+            if (lines.length < 2) { 
                  console.warn('CSV file must contain a header row and at least one data row.');
                  return; 
             }
 
-            // Get headers, trim, and convert to lowercase for robust matching
             const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-            
-            // Define expected headers (all lowercase)
             const expectedHeaders = ['character', 'pinyin', 'meaning', 'level', 'lesson'];
             const missingHeaders = expectedHeaders.filter(eh => !headers.includes(eh));
 
             if (missingHeaders.length > 0) {
                 console.warn(`CSV is missing expected headers: ${missingHeaders.join(', ')}.`);
-                // This error will be caught by the wordData.length check in the caller
                 return; 
             }
             
-            // Get indices of the columns based on headers
             const charIndex = headers.indexOf('character');
             const pinyinIndex = headers.indexOf('pinyin');
             const meaningIndex = headers.indexOf('meaning');
             const levelIndex = headers.indexOf('level');
             const lessonIndex = headers.indexOf('lesson');
 
-            // Process each data row
             for (let i = 1; i < lines.length; i++) {
                 const values = lines[i].split(',');
-                // Ensure the character field (primary identifier) is present and not empty
                 if (values[charIndex] && values[charIndex].trim() !== "") {
                     const entry = {
-                        // Using "Word" internally for the character for consistency with some internal logic
                         Word: values[charIndex]?.trim(), 
-                        Pinyin: values[pinyinIndex]?.trim() || 'N/A', // Default if empty
-                        Meaning: values[meaningIndex]?.trim() || 'N/A', // Default if empty
-                        Level: values[levelIndex]?.trim() || 'Uncategorized', // Default if empty
-                        Lesson: values[lessonIndex]?.trim() || 'Uncategorized' // Default if empty
+                        Pinyin: values[pinyinIndex]?.trim() || 'N/A', 
+                        Meaning: values[meaningIndex]?.trim() || 'N/A', 
+                        Level: values[levelIndex]?.trim() || 'Uncategorized', 
+                        Lesson: values[lessonIndex]?.trim() || 'Uncategorized' 
                     };
                     wordData.push(entry);
                 }
@@ -328,6 +341,25 @@
             `).join('');
         }
 
+        /**
+         * Adds event listeners to the "Check All" and "Uncheck All" filter buttons.
+         */
+        function addFilterButtonListeners() {
+            document.querySelectorAll('.btn-filter-action').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const action = event.target.dataset.action; // "check-all" or "uncheck-all"
+                    const filterType = event.target.dataset.filterType; // "lesson" or "level"
+                    const checkState = action === 'check-all'; // true for check-all, false for uncheck-all
+
+                    const checkboxes = document.querySelectorAll(`input[name="${filterType}"]`);
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = checkState;
+                    });
+                });
+            });
+        }
+
+
         // --- Word Selection Logic ---
         getWordBtn.addEventListener('click', displayRandomWord);
 
@@ -347,28 +379,24 @@
             const selectedLessons = getSelectedFilters('lesson');
             const selectedLevels = getSelectedFilters('level');
 
-            // Filter words based on current selections
             const filteredWords = wordData.filter(item => 
                 (selectedLessons.length === 0 || selectedLessons.includes(item.Lesson || 'Uncategorized')) &&
                 (selectedLevels.length === 0 || selectedLevels.includes(item.Level || 'Uncategorized'))
             );
 
             if (filteredWords.length > 0) {
-                // Select a random word from the filtered list
                 currentWordObject = filteredWords[Math.floor(Math.random() * filteredWords.length)];
                 
-                // Display the chosen word's details
-                chosenWordSpan.textContent = currentWordObject.Word; // This is the 'character'
+                chosenWordSpan.textContent = currentWordObject.Word; 
                 wordPinyinSpan.textContent = currentWordObject.Pinyin || 'N/A';
                 wordMeaningSpan.textContent = currentWordObject.Meaning || 'N/A';
                 
                 wordDisplayArea.classList.remove('hidden');
-                noWordError.classList.add('hidden'); // Hide any previous "no word" error
-                sentenceInput.value = ''; // Clear previous sentence input
-                saveStatus.classList.add('hidden'); // Hide save status message from previous attempts
+                noWordError.classList.add('hidden'); 
+                sentenceInput.value = ''; 
+                saveStatus.classList.add('hidden'); 
                 saveStatus.textContent = '';
             } else {
-                // If no words match the filters
                 currentWordObject = null;
                 chosenWordSpan.textContent = '';
                 wordPinyinSpan.textContent = '';
@@ -380,66 +408,55 @@
 
         // --- Sentence Saving Logic (Interacts with Google Apps Script) ---
         saveSentenceBtn.addEventListener('click', async () => {
-            // Validate that a word is selected
             if (!currentWordObject || !currentWordObject.Word) {
                 displayStatus('Please select a character first by clicking "Get New Character"!', 'error', noWordError);
                 return;
             }
-            // Validate that a sentence has been written
             const sentence = sentenceInput.value.trim();
             if (!sentence) {
-                displayStatus('Please write a sentence for the character!', 'error', noWordError); // Use noWordError for context
+                displayStatus('Please write a sentence for the character!', 'error', noWordError); 
                 return;
             }
-            // Validate that the Apps Script URL is set
             if (!SCRIPT_URL) {
                 displayStatus('Google Apps Script URL is not set. Please check Step 1B in the setup.', 'error', saveStatus);
                 return;
             }
-            noWordError.classList.add('hidden'); // Clear contextual error if validation passes
+            noWordError.classList.add('hidden'); 
 
-            // Prepare data for sending
             const today = new Date();
             const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             
             const dataToSave = {
                 date: dateString,
-                word: currentWordObject.Word, // The 'character'
+                word: currentWordObject.Word, 
                 sentence: sentence
             };
 
-            // Update UI to show loading state
             saveSentenceBtn.disabled = true;
             saveSentenceBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
             displayStatus('Saving your sentence to Google Sheets...', 'loading', saveStatus);
 
             try {
-                // Make the POST request to Google Apps Script
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'cors', // Necessary for cross-origin requests to Apps Script
-                    redirect: 'follow', // Apps Script web apps often issue a redirect after POST
-                    body: JSON.stringify(dataToSave), // Stringify the data object
-                    // Apps Script doPost(e) expects e.postData.contents as a string.
-                    // It also often works best if Content-Type is text/plain for the payload.
+                    mode: 'cors', 
+                    redirect: 'follow', 
+                    body: JSON.stringify(dataToSave), 
                     headers: {
                         'Content-Type': 'text/plain;charset=utf-8', 
                     }
                 });
                 
-                // Attempt to parse the response as JSON (our Apps Script is set to return JSON)
                 const result = await response.json(); 
 
                 if (result.status === "success") {
                     displayStatus(result.message || 'Sentence saved successfully!', 'success', saveStatus);
-                    sentenceInput.value = ''; // Clear input field after successful save
+                    sentenceInput.value = ''; 
                 } else {
-                    // If Apps Script returns an error status
                     throw new Error(result.message || 'An unknown error occurred on the server.');
                 }
             } catch (error) {
                 console.error('Error saving sentence:', error);
-                // Display a comprehensive error message
                 let errorMessage = `Failed to save: ${error.message}. `;
                 errorMessage += 'Troubleshooting tips: ';
                 errorMessage += '1. Check your internet connection. ';
@@ -448,7 +465,6 @@
                 errorMessage += '4. Check the Apps Script execution logs for more details (in Apps Script editor: "Executions").';
                 displayStatus(errorMessage, 'error', saveStatus);
             } finally {
-                // Re-enable button and restore text regardless of outcome
                 saveSentenceBtn.disabled = false;
                 saveSentenceBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Save Sentence to Sheet';
             }
@@ -462,7 +478,6 @@
          */
         function displayStatus(message, type, element) {
             element.textContent = message;
-            // Reset classes to base, then add specific type
             element.className = 'status-message'; 
             if (type === 'success') {
                 element.classList.add('status-success');
@@ -471,13 +486,12 @@
             } else if (type === 'loading') {
                 element.classList.add('status-loading');
             }
-            element.classList.remove('hidden'); // Make the status message visible
+            element.classList.remove('hidden'); 
 
-            // Specific auto-hide for contextual errors near input fields
             if (element === noWordError && (type === 'error' || type === 'success')) { 
                  setTimeout(() => {
                     element.classList.add('hidden');
-                 }, 5000); // Hide after 5 seconds
+                 }, 5000); 
             }
         }
 
